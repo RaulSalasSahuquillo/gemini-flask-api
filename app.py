@@ -6,6 +6,7 @@ import hashlib
 from flask import Flask, render_template, request, render_template_string, flash, redirect, url_for, session
 import time
 import markdown
+from training import training # Librería que yo he creado para separar el entrenamiento
 
 # Acabo de descubrir esta manera de hacer html y me da pereza hacer archivos aparte XD. Por cierto, el CSS me lo ha hecho Antigravity.
 index_template = """
@@ -13,6 +14,7 @@ index_template = """
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='LogoEN.AI.png') }}">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EN.AI - ENEI PROJECT</title>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Playfair+Display:ital,wght@0,400;1,700&display=swap" rel="stylesheet">
@@ -203,6 +205,7 @@ index_template = """
     <a href="{{ url_for('logout') }}" class="logout-btn">TERMINAR SESIÓN</a>
     
     <div class="chat-header">
+        <img src="{{ url_for('static', filename='LogoInicio.png') }}" alt="Logo EN.AI" style="height: 60px; margin-bottom: 10px; filter: drop-shadow(0 0 10px var(--glow-text));">
         <h1>EN.AI</h1>
         <p>ENEI PROJECT // OPERADOR: {{ user }}</p>
     </div>
@@ -248,7 +251,7 @@ def crear_chat():
     return client.chats.create(
         model="gemini-2.5-flash", 
         config={
-            "system_instruction": "Eres EN.AI, una IA desarrollada por el estudio personal de ENEI PROJECT que pertenece al desarrollador Raúl Salas Sahuquillo. Responde de manera útil, amigable y profesional. Habla en español.",
+            "system_instruction": training(),
             "tools": [{"google_search": {}}], # Herramienta para Google Serch
         }
     )
@@ -273,7 +276,7 @@ init_db() # Llamamos a la función al arrancar
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
-# HTML simple para login y registro
+# HTML simple para login. Uff que palo estilizarlo con css jajajajaja
 login_template = """
 <!DOCTYPE html>
 <html>
@@ -293,6 +296,7 @@ login_template = """
 </html>
 """
 
+# HTML simple para registro
 register_template = """
 <!DOCTYPE html>
 <html>
