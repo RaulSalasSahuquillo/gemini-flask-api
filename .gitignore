@@ -1,4 +1,40 @@
+# Environment variables and secrets
 .env
+
+# Database files & SQLite temporary files
 users.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Virtual environment directories
+venv/
+.venv/
+env/
+ENV/
+
+# Python caching & bytecode
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+.ruff_cache/
+
+# IDE
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+
+# Logs
+*.log

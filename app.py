@@ -3,15 +3,22 @@ from dotenv import load_dotenv
 import os
 import sqlite3
 import hashlib
-from flask import Flask, render_template, request, render_template_string, flash, redirect, url_for, session
-import time
+from flask import (
+    Flask,
+    request,
+    render_template_string,
+    flash,
+    redirect,
+    url_for,
+    session,
+)
 import markdown
-from training import training # Librería que yo he creado para separar el entrenamiento
+from training import training  # Library created to separate the training instructions
 
-# Acabo de descubrir esta manera de hacer html y me da pereza hacer archivos aparte XD. Por cierto, el CSS me lo ha hecho Antigravity.
+# Just discovered this way of rendering HTML
 index_template = """
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='LogoEN.AI.png') }}">
@@ -28,7 +35,7 @@ index_template = """
 
         body {
             background-color: var(--bg-black);
-            /* Fondo con gradiente radial para simular profundidad y humo */
+            /* Background with radial gradient to simulate depth and smoke */
             background: radial-gradient(circle at center, #1a1a1a 0%, #000 100%);
             color: #d4d4d4;
             font-family: 'Playfair Display', serif;
@@ -40,7 +47,7 @@ index_template = """
             overflow: hidden;
         }
 
-        /* Capa de humo animada (Efecto visual) */
+        /* Animated smoke layer (Visual effect) */
         body::before {
             content: "";
             position: absolute;
@@ -58,7 +65,7 @@ index_template = """
 
         .container {
             width: 95%;
-            max-width: 900px;
+            max-width: 1200px;
             height: 90vh;
             background: var(--panel-alpha);
             backdrop-filter: blur(10px);
@@ -115,7 +122,7 @@ index_template = """
 
         @keyframes fadeIn { from { opacity: 0; filter: blur(5px); } to { opacity: 1; filter: blur(0); } }
 
-        .autor {
+        .author {
             display: block;
             font-family: 'Cinzel', serif;
             font-size: 0.6rem;
@@ -194,7 +201,7 @@ index_template = """
 
         .logout-btn:hover { color: #fff; }
 
-        /* Scrollbar invisible */
+        /* Invisible scrollbar */
         .chat-box::-webkit-scrollbar { width: 3px; }
         .chat-box::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); }
     </style>
@@ -202,26 +209,26 @@ index_template = """
 <body>
 
 <div class="container">
-    <a href="{{ url_for('logout') }}" class="logout-btn">TERMINAR SESIÓN</a>
+    <a href="{{ url_for('logout') }}" class="logout-btn">LOG OUT</a>
     
     <div class="chat-header">
         <img src="{{ url_for('static', filename='LogoInicio.png') }}" alt="Logo EN.AI" style="height: 60px; margin-bottom: 10px; filter: drop-shadow(0 0 10px var(--glow-text));">
         <h1>EN.AI</h1>
-        <p>ENEI PROJECT // OPERADOR: {{ user }}</p>
+        <p>ENEI PROJECT // OPERATOR: {{ user }}</p>
     </div>
 
     <div class="chat-box" id="chatBox">
         {% for msg in chat %}
-            <div class="msg {% if msg.autor == 'Tú' %}user{% else %}ai{% endif %}">
-                <span class="autor">{{ msg.autor }}</span>
-                {{ msg.texto | safe }}
+            <div class="msg {% if msg.author == 'You' %}user{% else %}ai{% endif %}">
+                <span class="author">{{ msg.author }}</span>
+                {{ msg.text | safe }}
             </div>
         {% endfor %}
     </div>
 
     <form method="POST" class="input-form">
-        <input type="text" name="mensaje" placeholder="Escribe al sistema..." required autofocus autocomplete="off">
-        <button type="submit">ENVIAR</button>
+        <input type="text" name="message" placeholder="Type to the system..." required autofocus autocomplete="off">
+        <button type="submit">SEND</button>
     </form>
 </div>
 
@@ -237,30 +244,33 @@ index_template = """
 load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = os.urandom(24) # Clave para las sesiones
+app.secret_key = os.urandom(24)  # Session key
 
-# --- CONFIGURACIÓN DE IA ---
+# AI CONFIGURATION
 api_key = os.getenv("GEMINI_API_KEY")
 if not api_key:
-    exit("Error: GEMINI_API_KEY no encontrada.")
+    exit("Error: GEMINI_API_KEY not found.")
 
 client = genai.Client(api_key=api_key)
 
-# Función para crear una nueva sesión de chat
-def crear_chat():
+
+# Function to create a new chat session
+def create_chat():
     return client.chats.create(
-        model="gemini-2.5-flash", 
+        model="gemini-2.5-flash",
         config={
             "system_instruction": training(),
-            "tools": [{"google_search": {}}], # Herramienta para Google Serch
-        }
+            "tools": [{"google_search": {}}],  # Tool for Google Search
+        },
     )
 
-# Inicializamos el chat globalmente (o por sesión)
-chat_session = crear_chat()
-historial = []
 
-# --- BASE DE DATOS ---
+# Initialize chat globally (or per session)
+chat_session = create_chat()
+history = []
+
+
+# DATABASE
 def init_db():
     with sqlite3.connect("users.db") as conn:
         conn.execute("""
@@ -271,24 +281,27 @@ def init_db():
             )
         """)
 
-init_db() # Llamamos a la función al arrancar
+
+init_db()  # Call the function on startup
+
 
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
-# HTML simple para login. Uff que palo estilizarlo con css jajajajaja
+
+# Simple HTML for login.
 login_template = """
 <!DOCTYPE html>
 <html>
 <head><title>Login - EN.AI</title></head>
 <body>
-    <h2>Iniciar Sesión</h2> 
+    <h2>Log In</h2> 
     <form method="POST">
-        Usuario: <input type="text" name="username" required><br>
-        Contraseña: <input type="password" name="password" required><br>
-        <button type="submit">Entrar</button>
+        Username: <input type="text" name="username" required><br>
+        Password: <input type="password" name="password" required><br>
+        <button type="submit">Log In</button>
     </form>
-    <p><a href="{{ url_for('register') }}">Registrarse</a></p>
+    <p><a href="{{ url_for('register') }}">Register</a></p>
     {% with messages = get_flashed_messages() %}{% if messages %}
         <ul>{% for msg in messages %}<li>{{ msg }}</li>{% endfor %}</ul>
     {% endif %}{% endwith %}
@@ -296,19 +309,19 @@ login_template = """
 </html>
 """
 
-# HTML simple para registro
+# Simple HTML for registration
 register_template = """
 <!DOCTYPE html>
 <html>
-<head><title>Registro - EN.AI</title></head>
+<head><title>Register - EN.AI</title></head>
 <body>
-    <h2>Registro de Usuario</h2>
+    <h2>User Registration</h2>
     <form method="POST">
-        Usuario: <input type="text" name="username" required><br>
-        Contraseña: <input type="password" name="password" required><br>
-        <button type="submit">Registrar</button>
+        Username: <input type="text" name="username" required><br>
+        Password: <input type="password" name="password" required><br>
+        <button type="submit">Register</button>
     </form>
-    <p><a href="{{ url_for('login') }}">Volver al login</a></p>
+    <p><a href="{{ url_for('login') }}">Back to login</a></p>
     {% with messages = get_flashed_messages() %}{% if messages %}
         <ul>{% for msg in messages %}<li>{{ msg }}</li>{% endfor %}</ul>
     {% endif %}{% endwith %}
@@ -316,8 +329,8 @@ register_template = """
 </html>
 """
 
-# RUTAS
 
+# ROUTES
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -326,15 +339,19 @@ def login():
 
         with sqlite3.connect("users.db") as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM users WHERE username=? AND password=?", (username, password))
+            cursor.execute(
+                "SELECT * FROM users WHERE username=? AND password=?",
+                (username, password),
+            )
             user = cursor.fetchone()
 
         if user:
             session["username"] = username
             return redirect(url_for("home"))
         else:
-            flash("Usuario o contraseña incorrectos.")
+            flash("Incorrect username or password.")
     return render_template_string(login_template)
+
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
@@ -343,47 +360,61 @@ def register():
         password = hash_password(request.form["password"])
         try:
             with sqlite3.connect("users.db") as conn:
-                conn.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, password))
-            flash("Registro éxito. Inicia sesión.")
+                conn.execute(
+                    "INSERT INTO users (username, password) VALUES (?, ?)",
+                    (username, password),
+                )
+            flash("Registration successful. Log in.")
             return redirect(url_for("login"))
         except sqlite3.IntegrityError:
-            flash("El nombre de usuario ya existe.")
+            flash("Username already exists.")
     return render_template_string(register_template)
 
-@app.route('/', methods=['GET', 'POST'])
+
+@app.route("/", methods=["GET", "POST"])
 def home():
-    global chat_session, historial
-    
-    # Si no hay usuario en sesión, mandarlo al login
+    global chat_session, history
+
+    # If no user in session, redirect to login
     if "username" not in session:
         return redirect(url_for("login"))
 
-    if request.method == 'POST':
-        user_message = request.form.get("mensaje")
+    if request.method == "POST":
+        user_message = request.form.get("message")
         if user_message:
-            try:                          # Lol, no sabía que iba ya por la línea 300
+            try:
                 response = chat_session.send_message(user_message)
-                historial.append({"autor": "Tú", "texto": user_message}) # Mensaje del usuario
-                texto_md = markdown.markdown(response.text) # Convertir a Markdown para que se vea mejor en el output
-                historial.append({"autor": "EN.AI", "texto": texto_md}) # Respuesta de la IA
+                history.append({"author": "You", "text": user_message})  # User message
+                text_md = markdown.markdown(
+                    response.text
+                )  # Convert to Markdown for better display in the output
+                history.append({"author": "EN.AI", "text": text_md})  # AI response
             except Exception as e:
-                if "429" in str(e): # El error 429 indica límite de tokens. Cuando aparece toca cambiar de api key.
-                    error_msg = "Límite de tasa alcanzado. Por favor, espera un momento antes de continuar."
+                if "429" in str(e):  # Error 429 indicates rate limit.
+                    error_msg = (
+                        "Rate limit reached. Please wait a moment before continuing."
+                    )
                 else:
-                    error_msg = f"Ocurrió un error inesperado: {e}"
-                historial.append({"autor": "Sistema", "texto": f"Error: {e}"})
-        return render_template_string(index_template, chat=historial, user=session["username"])
-    
-    # Si es GET (Recarga), reiniciamos el chat
-    historial = []
-    chat_session = crear_chat()
-    return render_template_string(index_template, chat=historial, user=session["username"])
+                    error_msg = f"An unexpected error occurred: {e}"
+                history.append({"author": "System", "text": error_msg})
+        return render_template_string(
+            index_template, chat=history, user=session["username"]
+        )
 
-# Ruta para cerrar sesión
-@app.route('/logout')
+    # If GET (Reload), restart the chat
+    history = []
+    chat_session = create_chat()
+    return render_template_string(
+        index_template, chat=history, user=session["username"]
+    )
+
+
+# Route to log out
+@app.route("/logout")
 def logout():
     session.pop("username", None)
     return redirect(url_for("login"))
 
+
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, port=5002)
